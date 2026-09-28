@@ -11,7 +11,7 @@ if not api_key:
     st.error("API Anahtarı bulunamadı! Lütfen Streamlit Cloud Secrets ayarlarınızı kontrol edin.")
     st.stop()
 
-# Giriş/Şifre Kontrolü
+# Şifre Kontrolü
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -28,16 +28,16 @@ if not st.session_state.authenticated:
 # Client Tanımlama
 client = genai.Client(api_key=api_key)
 
-# Sohbet Geçmişi Hazırlığı
+# Sohbet Geçmişi
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Geçmiş Mesajları Listele
+# Geçmişi Ekrana Yazma
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
-# Kullanıcı Mesaj Girişi
+# Mesaj Girişi
 prompt = st.chat_input("Mesajınızı yazın...")
 
 if prompt:
@@ -47,35 +47,12 @@ if prompt:
 
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
-            response_text = None
-            last_error = None
-
-            # Hesabınızdaki aktif/kullanılabilir modelleri dinamik olarak alalım
             try:
-                available_models = [
-                    m.name for m in client.models.list() 
-                    if "generateContent" in getattr(m, "supported_generation_methods", [])
-                ]
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
+                st.write(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
-                # Liste çekilemezse varsayılan liste
-                available_models = ["gemini-3.8-flash", "gemini-1.5-flash"]
-
-            # Bulunan modeller sıralı şekilde denenir
-            for model_name in available_models:
-                try:
-                    res = client.models.generate_content(
-                        model=model_name,
-                        contents=prompt
-                    )
-                    response_text = res.text
-                    break
-                except Exception as e:
-                    last_error = e
-                    continue
-
-            if response_text:
-                st.write(response_text)
-                st.session_state.messages.append({"role": "assistant", "content": response_text})
-            else:
-                st.error(f"Aktif modeller denendi ancak yanıt alınamadı. Son hata: {last_error}")
-                
+                st.error(f"Bir hata oluştu: {e}")
