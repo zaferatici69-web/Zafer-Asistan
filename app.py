@@ -11,9 +11,6 @@ if not api_key:
     st.error("API Anahtarı bulunamadı! Lütfen Streamlit Cloud Secrets ayarlarınızı kontrol edin.")
     st.stop()
 
-# Yeni Google GenAI İstemcisi
-client = genai.Client(api_key=api_key)
-
 # Giriş/Şifre Kontrolü
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -27,6 +24,9 @@ if not st.session_state.authenticated:
         else:
             st.error("Hatalı şifre!")
     st.stop()
+
+# Client Tanımlama
+client = genai.Client(api_key=api_key)
 
 # Sohbet Geçmişi Hazırlığı
 if "messages" not in st.session_state:
@@ -47,15 +47,25 @@ if prompt:
 
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
-            try:
-                # Güncel Gemini 2.5 Flash Modeli
-                response = client.models.generate_content(
-                    model="gemini-1.5-flash",
-                    contents=prompt
-                )
-                
-                st.write(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-            except Exception as e:
-                st.error(f"Bir hata oluştu: {e}")
-                
+            # Denediğimiz modeller sırasıyla
+            candidate_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"]
+            response_text = None
+            last_error = None
+
+            for model_name in candidate_models:
+                try:
+                    res = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt
+                    )
+                    response_text = res.text
+                    break
+                except Exception as e:
+                    last_error = e
+                    continue
+
+            if response_text:
+                st.write(response_text)
+                st.session_state.messages.append({"role": "assistant", "content": response_text})
+            else:
+                st.error(f"Sistemdeki tüm modeller denendi ancak yanıt alınamadı. Son hata: {last_error}")
