@@ -1,8 +1,7 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 
 st.set_page_config(page_title="Zafer Asistan", page_icon="🤖")
-
 st.title("🤖 Zafer Asistan Portalınız")
 
 # API Anahtarı kontrolü
@@ -12,8 +11,8 @@ if not api_key:
     st.error("API Anahtarı bulunamadı! Lütfen Streamlit Cloud Secrets ayarlarınızı kontrol edin.")
     st.stop()
 
-# API Yapılandırması
-genai.configure(api_key=api_key)
+# Yeni Google GenAI İstemcisi
+client = genai.Client(api_key=api_key)
 
 # Giriş/Şifre Kontrolü
 if "authenticated" not in st.session_state:
@@ -28,14 +27,6 @@ if not st.session_state.authenticated:
         else:
             st.error("Hatalı şifre!")
     st.stop()
-
-# Model Tanımlama
-SYSTEM_PROMPT = "Sen Zafer Asistan adında yardımsever, kişisel bir yapay zeka asistanısın."
-
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash-pro",
-    system_instruction=SYSTEM_PROMPT
-)
 
 # Sohbet Geçmişi Hazırlığı
 if "messages" not in st.session_state:
@@ -57,12 +48,11 @@ if prompt:
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
             try:
-                history = [
-                    {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]}
-                    for m in st.session_state.messages[:-1]
-                ]
-                chat = model.start_chat(history=history)
-                response = chat.send_message(prompt)
+                # Güncel Gemini 2.5 Flash Modeli
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
                 
                 st.write(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
