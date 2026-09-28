@@ -25,19 +25,19 @@ if not st.session_state.authenticated:
             st.error("Hatalı şifre!")
     st.stop()
 
-# Client Tanımlama
+# Google GenAI İstemcisi
 client = genai.Client(api_key=api_key)
 
-# Sohbet Geçmişi
+# Sohbet Geçmişi Hazırlığı
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Geçmişi Ekrana Yazma
+# Geçmiş Mesajları Listele
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
-# Mesaj Girişi
+# Kullanıcı Mesaj Girişi
 prompt = st.chat_input("Mesajınızı yazın...")
 
 if prompt:
@@ -48,10 +48,12 @@ if prompt:
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
             try:
+                # Google'ın hata mesajında şart koştuğu güncel model
                 response = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.8-flash",
                     contents=prompt
                 )
+                
                 st.write(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
