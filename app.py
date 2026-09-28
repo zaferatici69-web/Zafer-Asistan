@@ -1,77 +1,43 @@
-import os
-import sqlite3
-import streamlit as st
-import google.generativeai as genai
-
-# --- 1. GÜVENLİK VE GİRİŞ KONTROLÜ ---
-st.set_page_config(page_title="Zafer Asistan", page_icon="🧠", layout="centered")
-
-def check_password():
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-
-    if not st.session_state.authenticated:
-        st.title("🔒 Özel Asistan Girişi")
-        pwd = st.text_input("Sistem Giriş Şifresi:", type="password")
-        if st.button("Giriş Yap"):
-            if pwd == "1234":
-                st.session_state.authenticated = True
-                st.rerun()
-            else:
-                st.error("Hatalı Şifre!")
-        return False
-    return True
-
-if not check_password():
-    st.stop()
-
-# --- 2. KALICI HAFIZA (SQLITE VERİTABANI) ---
-conn = sqlite3.connect("hafiza.db", check_same_thread=False)
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS sohbetler 
-             (id INTEGER PRIMARY KEY AUTOINCREMENT, rol TEXT, mesaj TEXT)''')
-conn.commit()
-
-# --- 3. API & MODEL AYARLARI ---
-api_key = st.secrets.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY"))
-
-if not api_key:
-    st.warning("⚠️ Lütfen Streamlit Secrets alanına GEMINI_API_KEY ekleyin.")
-    st.stop()
-
-genai.configure(api_key=api_key)
-
-SYSTEM_PROMPT = """
-Sen kullanıcının kişisel, bağımsız ve sınırsız özel asistanısın.
-Sürekli olarak kullanıcının geçmiş sohbetlerini, tercihlerini, teknik uzmanlığını ve üslubunu hatırla.
-Kullanıcıya her zaman doğrudan, teknik düzeyi yüksek, samimi ve iş odaklı yanıtlar ver.
-"""
-
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-pro",
-    system_instruction=SYSTEM_PROMPT
-)
-
-# --- 4. ARAYÜZ VE SOHBET MANTIĞI ---
-st.title("🤖 Zafer Asistan Portalınız")
-
-c.execute("SELECT rol, mesaj FROM sohbetler ORDER BY id ASC")
-gecmis = c.fetchall()
-
-messages = []
-for rol, mesaj in gecmis:
-    messages.append({"role": rol, "parts": [mesaj]})
-    with st.chat_message(rol):
-        st.write(mesaj)
-
-if prompt := st.chat_input("Mesajınızı yazın..."):
-    st.chat_message("user").write(prompt)
-    c.execute("INSERT INTO sohbetler (rol, mesaj) VALUES (?, ?)", ("user", prompt))
-    conn.commit()
-    
-    chat = model.start_chat(history=messages)
+google.api_core.exceptions.NotFound: This app has encountered an error. The original error message is redacted to prevent data leaks. Full error details have been recorded in the logs (if you're on Streamlit Cloud, click on 'Manage app' in the lower right of your app).
+Traceback:
+File "/mount/src/zafer-asistan/app.py", line 73, in <module>
     response = chat.send_message(prompt)
-    
-    st.chat_message("assistant").write(response.text)
-    c.execute("INSERT INTO sohbetler (rol, mesaj) VALUES (?, ?)", ("assistant", response.text))
-    conn.commit()
+File "/home/adminuser/venv/lib/python3.14/site-packages/google/generativeai/generative_models.py", line 578, in send_message
+    response = self.model.generate_content(
+        contents=history,
+    ...<5 lines>...
+        request_options=request_options,
+    )
+File "/home/adminuser/venv/lib/python3.14/site-packages/google/generativeai/generative_models.py", line 331, in generate_content
+    response = self._client.generate_content(
+        request,
+        **request_options,
+    )
+File "/home/adminuser/venv/lib/python3.14/site-packages/google/ai/generativelanguage_v1beta/services/generative_service/client.py", line 835, in generate_content
+    response = rpc(
+        request,
+    ...<2 lines>...
+        metadata=metadata,
+    )
+File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/gapic_v1/method.py", line 131, in __call__
+    return wrapped_func(*args, **kwargs)
+File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_unary.py", line 294, in retry_wrapped_func
+    return retry_target(
+        target,
+    ...<3 lines>...
+        on_error=on_error,
+    )
+File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_unary.py", line 156, in retry_target
+    next_sleep = _retry_error_helper(
+        exc,
+    ...<6 lines>...
+        timeout,
+    )
+File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_unary.py", line 147, in retry_target
+    result = target()
+File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/timeout.py", line 130, in func_with_timeout
+    return func(*args, **kwargs)
+File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/grpc_helpers.py", line 77, in error_remapped_callable
+    raise exceptions.from_grpc_error(exc) from exc
