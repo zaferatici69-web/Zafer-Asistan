@@ -33,7 +33,7 @@ if not st.session_state.authenticated:
 SYSTEM_PROMPT = "Sen Zafer Asistan adında yardımsever, kişisel bir yapay zeka asistanısın."
 
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
+    model_name="gemini-1.5-flash-latest",
     system_instruction=SYSTEM_PROMPT
 )
 
