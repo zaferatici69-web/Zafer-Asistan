@@ -1,43 +1,71 @@
-google.api_core.exceptions.NotFound: This app has encountered an error. The original error message is redacted to prevent data leaks. Full error details have been recorded in the logs (if you're on Streamlit Cloud, click on 'Manage app' in the lower right of your app).
-Traceback:
-File "/mount/src/zafer-asistan/app.py", line 73, in <module>
-    response = chat.send_message(prompt)
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/generativeai/generative_models.py", line 578, in send_message
-    response = self.model.generate_content(
-        contents=history,
-    ...<5 lines>...
-        request_options=request_options,
-    )
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/generativeai/generative_models.py", line 331, in generate_content
-    response = self._client.generate_content(
-        request,
-        **request_options,
-    )
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/ai/generativelanguage_v1beta/services/generative_service/client.py", line 835, in generate_content
-    response = rpc(
-        request,
-    ...<2 lines>...
-        metadata=metadata,
-    )
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/gapic_v1/method.py", line 131, in __call__
-    return wrapped_func(*args, **kwargs)
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_unary.py", line 294, in retry_wrapped_func
-    return retry_target(
-        target,
-    ...<3 lines>...
-        on_error=on_error,
-    )
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_unary.py", line 156, in retry_target
-    next_sleep = _retry_error_helper(
-        exc,
-    ...<6 lines>...
-        timeout,
-    )
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_base.py", line 214, in _retry_error_helper
-    raise final_exc from source_exc
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_unary.py", line 147, in retry_target
-    result = target()
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/timeout.py", line 130, in func_with_timeout
-    return func(*args, **kwargs)
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/grpc_helpers.py", line 77, in error_remapped_callable
-    raise exceptions.from_grpc_error(exc) from exc
+import streamlit as st
+import google.generativeai as genai
+
+st.set_page_config(page_title="Zafer Asistan", page_icon="🤖")
+
+st.title("🤖 Zafer Asistan Portalınız")
+
+# API Anahtarı kontrolü
+api_key = st.secrets.get("GEMINI_API_KEY")
+
+if not api_key:
+    st.error("API Anahtarı bulunamadı! Lütfen Streamlit Cloud Secrets ayarlarınızı kontrol edin.")
+    st.stop()
+
+# API Yapılandırması
+genai.configure(api_key=api_key)
+
+# Giriş/Şifre Kontrolü
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    pwd = st.text_input("Sistem Giriş Şifresi", type="password")
+    if st.button("Giriş Yap"):
+        if pwd == "1234":
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Hatalı şifre!")
+    st.stop()
+
+# Model Tanımlama
+SYSTEM_PROMPT = "Sen Zafer Asistan adında yardımsever, kişisel bir yapay zeka asistanısın."
+
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=SYSTEM_PROMPT
+)
+
+# Sohbet Geçmişi Hazırlığı
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Geçmiş Mesajları Listele
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
+
+# Kullanıcı Mesaj Girişi
+prompt = st.chat_input("Mesajınızı yazın...")
+
+if prompt:
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.write(prompt)
+
+    with st.chat_message("assistant"):
+        with st.spinner("Düşünüyor..."):
+            try:
+                history = [
+                    {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]}
+                    for m in st.session_state.messages[:-1]
+                ]
+                chat = model.start_chat(history=history)
+                response = chat.send_message(prompt)
+                
+                st.write(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+            except Exception as e:
+                st.error(f"Bir hata oluştu: {e}")
+                
