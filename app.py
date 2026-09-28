@@ -47,11 +47,11 @@ if prompt:
 
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
-            # Güncel ve geçerli modeller sırasıyla denenir
+            # Google API'nin doğrudan önerdiği aktif modeller
             candidate_models = [
+                "gemini-3.8-flash",
                 "gemini-1.5-flash",
-                "gemini-1.5-pro",
-                "gemini-2.0-flash"
+                "gemini-2.5-flash"
             ]
             
             response_text = None
@@ -74,3 +74,4 @@ if prompt:
                 st.session_state.messages.append({"role": "assistant", "content": response_text})
             else:
                 st.error(f"Sistemdeki tüm modeller denendi ancak yanıt alınamadı. Son hata: {last_error}")
+                
