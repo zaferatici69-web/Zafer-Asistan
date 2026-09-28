@@ -1,4 +1,3 @@
-import time
 import streamlit as st
 from google import genai
 
@@ -26,19 +25,19 @@ if not st.session_state.authenticated:
             st.error("Hatalı şifre!")
     st.stop()
 
-# Google GenAI İstemcisi
+# Client Tanımlama
 client = genai.Client(api_key=api_key)
 
-# Sohbet Geçmişi Hazırlığı
+# Sohbet Geçmişi
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Geçmiş Mesajları Listele
+# Geçmişi Ekrana Yazma
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
-# Kullanıcı Mesaj Girişi
+# Mesaj Girişi
 prompt = st.chat_input("Mesajınızı yazın...")
 
 if prompt:
@@ -48,28 +47,13 @@ if prompt:
 
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
-            response_text = None
-            last_error = None
-            
-            # Google'ın kabul ettiği tam model yolları
-            candidate_models = ["models/gemini-2.5-flash", "models/gemini-2.0-flash", "gemini-2.5-flash"]
-
-            for model_name in candidate_models:
-                try:
-                    res = client.models.generate_content(
-                        model=model_name,
-                        contents=prompt
-                    )
-                    if res.text:
-                        response_text = res.text
-                        break
-                except Exception as e:
-                    last_error = e
-                    continue
-
-            if response_text:
-                st.write(response_text)
-                st.session_state.messages.append({"role": "assistant", "content": response_text})
-            else:
-                st.error(f"Yanıt alınamadı. Son hata: {last_error}")
-                
+            try:
+                # Doğrudan temel flash modeli
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
+                st.write(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+            except Exception as e:
+                st.error(f"Hata oluştu: {e}")
