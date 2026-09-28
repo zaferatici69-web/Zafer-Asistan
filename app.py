@@ -47,8 +47,13 @@ if prompt:
 
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
-            # Denediğimiz modeller sırasıyla
-            candidate_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"]
+            # Güncel ve geçerli modeller sırasıyla denenir
+            candidate_models = [
+                "gemini-1.5-flash",
+                "gemini-1.5-pro",
+                "gemini-2.0-flash"
+            ]
+            
             response_text = None
             last_error = None
 
