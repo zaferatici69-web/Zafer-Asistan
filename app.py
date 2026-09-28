@@ -51,30 +51,25 @@ if prompt:
             response_text = None
             last_error = None
             
-            # Yoğunluk anında sırayla denenecek modeller ve tekrar mekanizması
-            candidate_models = ["gemini-3.8-flash", "gemini-3.8-pro", "gemini-1.5-flash"]
+            # Google'ın kabul ettiği tam model yolları
+            candidate_models = ["models/gemini-2.5-flash", "models/gemini-2.0-flash", "gemini-2.5-flash"]
 
             for model_name in candidate_models:
-                # Her model için yoğunluk durumunda 2 kez deneme yapılır
-                for attempt in range(2):
-                    try:
-                        res = client.models.generate_content(
-                            model=model_name,
-                            contents=prompt
-                        )
+                try:
+                    res = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt
+                    )
+                    if res.text:
                         response_text = res.text
                         break
-                    except Exception as e:
-                        last_error = e
-                        if "503" in str(e) or "UNAVAILABLE" in str(e):
-                            time.sleep(2)  # Yoğunluk varsa 2 saniye bekle ve tekrar dene
-                            continue
-                        break
-                if response_text:
-                    break
+                except Exception as e:
+                    last_error = e
+                    continue
 
             if response_text:
                 st.write(response_text)
                 st.session_state.messages.append({"role": "assistant", "content": response_text})
             else:
-                st.error(f"Sunucu yoğunluğu nedeniyle yanıt alınamadı, lütfen birkaç saniye sonra tekrar deneyin. (Hata: {last_error})")
+                st.error(f"Yanıt alınamadı. Son hata: {last_error}")
+                
