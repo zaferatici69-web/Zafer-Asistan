@@ -47,17 +47,21 @@ if prompt:
 
     with st.chat_message("assistant"):
         with st.spinner("Düşünüyor..."):
-            # Google API'nin doğrudan önerdiği aktif modeller
-            candidate_models = [
-                "gemini-3.8-flash",
-                "gemini-1.5-flash",
-                "gemini-2.5-flash"
-            ]
-            
             response_text = None
             last_error = None
 
-            for model_name in candidate_models:
+            # Hesabınızdaki aktif/kullanılabilir modelleri dinamik olarak alalım
+            try:
+                available_models = [
+                    m.name for m in client.models.list() 
+                    if "generateContent" in getattr(m, "supported_generation_methods", [])
+                ]
+            except Exception as e:
+                # Liste çekilemezse varsayılan liste
+                available_models = ["gemini-3.8-flash", "gemini-1.5-flash"]
+
+            # Bulunan modeller sıralı şekilde denenir
+            for model_name in available_models:
                 try:
                     res = client.models.generate_content(
                         model=model_name,
@@ -73,5 +77,5 @@ if prompt:
                 st.write(response_text)
                 st.session_state.messages.append({"role": "assistant", "content": response_text})
             else:
-                st.error(f"Sistemdeki tüm modeller denendi ancak yanıt alınamadı. Son hata: {last_error}")
+                st.error(f"Aktif modeller denendi ancak yanıt alınamadı. Son hata: {last_error}")
                 
