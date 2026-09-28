@@ -50,7 +50,7 @@ if prompt:
             try:
                 # Güncel Gemini 2.5 Flash Modeli
                 response = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-1.5-flash",
                     contents=prompt
                 )
                 
